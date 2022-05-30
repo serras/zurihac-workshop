@@ -10,9 +10,9 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules:  Session1.Task1, Session1.Task2
+    exposed-modules:  Session1.Task1, Session1.Task2, Session1.Task3, Session1.Operational
     -- other-modules:
-    build-depends:    base >= 4.14, text
+    build-depends:    base >= 4.14, text, random >= 1.2, monad-loops
     hs-source-dirs:   src
     default-language: Haskell2010
     ghc-options:      -fdefer-typed-holes

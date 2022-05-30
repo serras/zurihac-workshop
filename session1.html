@@ -375,6 +375,188 @@ ironTailAction = go 0
 
 ---
 
+# 🧞 Syntax/algebra and interpretation
+
+`Action` defines the **syntax** of our DSL <br /> (also known as **algebra** in some circles)
+
+> "The language itself", "what we can say"
+
+---
+
+# 🧞 Syntax/algebra and interpretation
+
+`Action` defines the **syntax** of our DSL <br /> (also known as **algebra** in some circles)
+
+An **interpretation** defines how each value behaves in a certain context
+
+> "What a sentence means"
+
+1 syntax / algebra ⟷ ∞ interpretations
+
+---
+
+# 🎰 Randomness interpretation
+
+During the actual game, we expect to generate random coin flips to obtain the actual damage
+
+```haskell
+interpretRandom :: Action -> IO Natural
+```
+
+## .grey[🧑‍💻 Time for practice!]
+
+---
+
+# 🎰 Randomness interpretation
+
+During the actual game, we expect to generate random coin flips to obtain the actual damage
+
+```haskell
+interpretRandom :: Action -> IO Natural
+interpretRandom (Damage d)   = pure d
+interpretRandom (FlipCoin f) = do
+  outcome <- flipCoin
+  interpretRandom (f outcome)
+  -- one-liner
+  -- flipCoin >>= interpretRandom . f
+```
+
+---
+
+# 🎴 Actions about cards
+
+<img src="img/attack2.png" width="80%" />
+<img src="img/attack3.png" width="80%" />
+<img src="img/attack4.png" width="80%" />
+
+---
+
+# 🎴 Actions about cards
+
+.code70[
+```haskell
+data Action
+  = FlipCoin (FlipOutcome -> Action)
+  | DrawCard (Maybe Card -> Action)
+    -- ^ there may not be more cards
+  | QueryAttached ([Card] -> Action)
+    -- ^ get info. about the current Pokémon
+  | Damage Natural
+```
+]
+
+### .grey[Can you spot the pattern? 🔍]
+
+---
+
+# 🎴 Actions about cards
+
+.code70[
+```haskell
+data Action
+  = FlipCoin (FlipOutcome -> Action)
+  | DrawCard (Maybe Card -> Action)
+    -- ^ there may not be more cards
+  | QueryAttached ([Card] -> Action)
+    -- ^ get info. about the current Pokémon
+  | Damage Natural
+```
+]
+
+- `Damage` is a **final** action
+- The rest "generate" a value, <br /> which is consumed to keep going
+
+---
+
+# 🔩 The `Operational` monad
+
+.code70[
+```haskell
+data Program instr a where
+  Done   :: a -> Program instr a
+  (:>>=) :: instr a
+         -> (a -> Program instr b)
+         -> Program instr b
+```
+]
+
+Split the pattern from the concrete instructions
+
+.code70[
+```haskell
+data Action a where
+  FlipCoin :: Action FlipOutcome
+  DrawCard :: Action (Maybe Card)
+  QueryAttached :: Action [Card]
+```
+]
+
+---
+
+# 🪙 Operational coin flips
+
+<img src="img/attack1.png" width="80%" />
+
+```haskell
+perform :: instr a -> Program instr a
+perform action = action :>>= Done
+
+instance Functor     (Program instr)
+instance Applicative (Program instr)
+instance Monad       (Program instr)
+```
+
+---
+
+# 🪙 Operational coin flips
+
+<img src="img/attack1.png" width="80%" />
+
+```haskell
+ironTailAction :: Program Action Natural
+ironTailAction = do
+  outcome <- perform FlipCoin
+  case outcome of
+    Tails -> pure 0
+    Heads -> (30 +) <$> ironTailAction
+```
+
+---
+
+# 🪙 Operational coin flips
+
+<img src="img/attack1.png" width="80%" />
+
+Being a `Monad` gives access to many functions
+
+.code70[
+```haskell
+ironTailAction :: Program Action Natural
+ironTailAction = do
+  hs <- unfoldWhileM (== Tails) (perform FlipCoin)
+  pure $ 30 * genericLength hs
+```
+]
+
+`unfoldWhileM` comes from `monad-loops`
+
+---
+
+# 🎴 Actions about cards
+
+<img src="img/attack4.png" width="80%" />
+
+## .grey[🧑‍💻 Time for practice!]
+
+.margin-top[
+1. Write a function to **draw *n* ** cards
+2. Add an additional operation to **discard** cards
+  - Must include a predicate to select cards
+  - Outcome: whether a card was discarted
+]
+
+---
+
 class: center, middle, title-slide
 
 # 🤩 It's been a pleasure
