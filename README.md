@@ -1,5 +1,5 @@
-# Mapping Right and Wrong
+# [ZuriHac 2022](https://zfoh.ch/zurihac2022/) Workshop
 
-> Slides proudly presented at [Codemotion Online 2022 - Spanish Edition](https://events.codemotion.com/conferences/online/2022/online-tech-conference-2022-spanish-edition-spring)
+[![The Legend of DSLs](img/session1.png)](http://serras.github.io/zurihac-workshop/session1)
 
-## [Slides](http://serras.github.io/codemotion-2022/slides)
+[![Adventures in IO](img/session2.png)](http://serras.github.io/zurihac-workshop/session2)
