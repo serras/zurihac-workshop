@@ -1,11 +1,17 @@
 {-# language GADTs #-}
-module Session1.Operational where
+{-# language RankNTypes #-}
+{-# language LambdaCase #-}
+{-# language DeriveGeneric, DeriveAnyClass #-}
+module Session1.Operational1 where
 
 import Control.Monad
 import Control.Monad.Loops
 import Data.List (genericLength)
 import Data.Text (Text)
 import GHC.Natural
+import GHC.Generics
+import System.Random
+import System.Random.Stateful
 
 data Energy = Colorless
             | Grass | Fire | Water
@@ -24,7 +30,7 @@ data Attack = Attack { attackName :: Text
 
 data FlipOutcome 
   = Heads | Tails
-  deriving (Eq)
+  deriving (Eq, Generic, Finite, Uniform)
 
 data Program instr a where
   Done   :: a -> Program instr a
@@ -51,6 +57,22 @@ instance Applicative (Program instr) where
 
 instance Functor (Program instr) where
   fmap = liftM
+
+interpret :: Monad m 
+          => (forall x. instr x -> m x)
+          -> Program instr a -> m a
+interpret f = go
+  where
+    go (Done x) = return x
+    go (action :>>= k) = do
+      x <- f action
+      go (k x)
+      -- f action >>= go . k
+
+interpretRandom :: Program Action a -> IO a
+interpretRandom = interpret $ \case
+  FlipCoin -> uniformM globalStdGen
+  _ -> undefined
 
 -- | Define Pikachu's "Iron Tail" attack
 --

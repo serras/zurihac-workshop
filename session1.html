@@ -36,7 +36,7 @@ Alejandro Serrano @ ZuriHac 2022
 
 ### .grey[How do we build software with Haskell?]
 
-1. Domain-specific languages <br /> Representing state transitions <br /> Property-based testing
+1. Domain-specific languages <br /> Representing actions and scripts <br /> Property-based testing
 
 2. Communicating over the network <br /> Serialization (without boilerplate) <br /> Resource and error handling
 
@@ -90,20 +90,20 @@ Players take turns drawing and playing cards
 
 # 🏗️ Our approach
 
-### .grey[3 blocks of roughly 20 minutes each]
+### .grey[Explanations interleaved with tasks]
 
 1. Representing cards
-2. Representing actions and state
+2. Representing actions
 3. Testing actions
 
 ---
 
 # 🏗️ Our approach
 
-### .grey[3 blocks of roughly 20 minutes each]
+### .grey[Explanations interleaved with tasks]
 
 1. Representing cards
-2. Representing actions and state
+2. Representing actions
 3. Testing actions
 
 ## .grey[Domain-specific Language (DSL)]
@@ -485,11 +485,30 @@ Split the pattern from the concrete instructions
 .code70[
 ```haskell
 data Action a where
-  FlipCoin :: Action FlipOutcome
-  DrawCard :: Action (Maybe Card)
+  FlipCoin      :: Action FlipOutcome
+  DrawCard      :: Action (Maybe Card)
   QueryAttached :: Action [Card]
 ```
 ]
+
+---
+
+# ⚙️ Generalized ADTs (GADTs)
+
+Refine the resulting type from constructors
+
+.code70[
+```haskell
+{-# language GADTs #-}
+
+data Action a where
+  FlipCoin      :: Action FlipOutcome
+  DrawCard      :: Action (Maybe Card)
+  QueryAttached :: Action [Card]
+```
+]
+
+Here it represents the "generated" value
 
 ---
 
@@ -554,6 +573,139 @@ ironTailAction = do
   - Must include a predicate to select cards
   - Outcome: whether a card was discarted
 ]
+
+---
+
+# 🔩 Interpreting `Operational`
+
+One generic function for every `Program`
+
+.code70[
+```haskell
+interpret :: Monad m 
+          => (forall x. instr x -> m x)
+            -- ^ instruction interpreter
+          -> Program instr a -> m a
+interpret f = go
+  where go (Done x) = return x
+        go (action :>>= k) = do
+          x <- f action
+          go (k x)
+          -- f action >>= go . k
+```
+]
+
+---
+
+# 🔩 Interpreting `Operational`
+
+We can focus on each instruction, <br />
+instead of dealing with passing information
+
+.code70[
+```haskell
+interpretRandom :: Program Action a -> IO a
+interpretRandom = interpret $ \case
+  FlipCoin -> flipCoin
+  -- rest of cases
+```
+]
+
+---
+
+# ✅ Testing actions
+
+### .grey[How can we test `ironTailAction`?]
+
+<img src="img/attack1.png" width="80%" />
+
+---
+
+# ✅ Testing actions
+
+### .grey[How can we test `ironTailAction`?]
+
+<img src="img/attack1.png" width="80%" />
+
+❌ Using `interpretRandom` would not work
+
+- The outcome is random
+- Testing `IO` is cumbersome
+
+---
+
+# 🧮 Pure interpretation of flipping
+
+We pass the future outcomes as a parameter
+
+```haskell
+interpretPure :: [FlipOutcome]
+              -> Program Action a -> a
+```
+
+---
+
+# 🧮 Pure interpretation of flipping
+
+We pass the future outcomes as a parameter
+
+```haskell
+interpretPure :: [FlipOutcome]
+              -> Program Action a -> a
+```
+
+Now we control the future 🔮
+
+```haskell
+> interpretPure [Heads, Heads, Tails] 
+                ironTailAction
+60
+```
+
+---
+
+# 🧮 Pure interpretation of flipping
+
+The `State` monad threads the current value
+
+.code70[
+```haskell
+interpretPure :: [FlipOutcome]
+              -> Program Action a -> a
+interpretPure outcomes = 
+  flip evalState (cycle outcomes) . interpret f
+  where f :: Action x -> State [FlipOutcome] x
+        f FlipCoin = do
+          ~(result : nexts) <- get
+          put nexts
+          return result
+```
+]
+
+---
+
+# 🧮 Pure interpretation of flipping
+
+Writing it by hand might be easier... 🤔
+
+.code70[
+```haskell
+interpretPure :: [FlipOutcome]
+              -> Program Action a -> a
+interpretPure outcomes = go (cycle outcomes)
+  where go :: [FlipOutcome]
+           -> Program Action x -> x
+        go _ (Done x) = x
+        go (result : nexts) (FlipCoin :>>= k) =
+          go nexts (k result)
+```
+]
+
+---
+
+# Summary
+
+- Alternative interpretations for testing
 
 ---
 
