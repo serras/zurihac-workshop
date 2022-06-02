@@ -17,7 +17,7 @@ library
       Session1.Operational1, 
       Session1.Operational2
     -- other-modules:
-    build-depends:    base >= 4.14, text, random >= 1.2, monad-loops, mtl
+    build-depends:    base >= 4.14, text, random >= 1.2, monad-loops, mtl, tasty, tasty-quickcheck, generic-arbitrary
     hs-source-dirs:   src
     default-language: Haskell2010
     ghc-options:      -fdefer-typed-holes

@@ -2,9 +2,12 @@
 {-# language RankNTypes #-}
 {-# language LambdaCase #-}
 {-# language DeriveGeneric, DeriveAnyClass #-}
+{-# language ScopedTypeVariables #-}
+{-# language DerivingVia #-}
 module Session1.Operational2 where
 
 import Control.Monad
+import Control.Monad.Loops
 import Control.Monad.State
 import Data.List (genericLength)
 import Data.Text (Text)
@@ -13,9 +16,14 @@ import GHC.Generics
 import System.Random
 import System.Random.Stateful
 
+import Test.Tasty
+import Test.Tasty.QuickCheck
+import Test.QuickCheck.Arbitrary.Generic
+
 data FlipOutcome 
   = Heads | Tails
-  deriving (Eq, Generic, Finite, Uniform)
+  deriving (Show, Eq, Generic, Finite, Uniform)
+  deriving (Arbitrary) via GenericArbitrary FlipOutcome
 
 data Program instr a where
   Done   :: a -> Program instr a
@@ -69,7 +77,7 @@ interpretPure2 :: [FlipOutcome] -> Program Action a -> a
 interpretPure2 outcomes = go (cycle outcomes)
   where go :: [FlipOutcome] -> Program Action x -> x
         go _ (Done x) = x
-        go (result : nexts) (FlipCoin :>>= k) =
+        go ~(result : nexts) (FlipCoin :>>= k) =
           go nexts (k result)
 
 --- >>> interpretPure [Heads, Heads, Tails] ironTailAction
@@ -80,3 +88,20 @@ ironTailAction = do
   case outcome of
     Tails -> pure 0
     Heads -> (30 +) <$> ironTailAction
+
+ironTailAction2 :: Program Action Natural
+ironTailAction2 = do
+  heads <- unfoldWhileM (== Heads) (perform FlipCoin)
+  pure $ 30 * genericLength heads
+
+tests :: TestTree
+tests = 
+  testGroup "Iron Tail"
+    [ testProperty "non-negative" $ \outcomes -> 
+        interpretPure (outcomes ++ [Tails]) ironTailAction >= 0
+    , testProperty "30 times # of heads" $ \(noOfHeads :: Int) ->
+        noOfHeads > 0 ==>
+          interpretPure (replicate noOfHeads Heads ++ [Tails]) ironTailAction
+            == fromIntegral (noOfHeads * 30)
+    -- write a property for implementations to coincide
+    ]

@@ -87,7 +87,7 @@ ironTailAction = do
 
 ironTailAction2 :: Program Action Natural
 ironTailAction2 = do
-  heads <- unfoldWhileM (== Tails) (perform FlipCoin)
+  heads <- unfoldWhileM (== Heads) (perform FlipCoin)
   pure $ 30 * genericLength heads
 
 -- | Draw 'n' cards.

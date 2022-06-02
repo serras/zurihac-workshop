@@ -552,7 +552,7 @@ Being a `Monad` gives access to many functions
 ```haskell
 ironTailAction :: Program Action Natural
 ironTailAction = do
-  hs <- unfoldWhileM (== Tails) (perform FlipCoin)
+  hs <- unfoldWhileM (== Heads) (perform FlipCoin)
   pure $ 30 * genericLength hs
 ```
 ]
@@ -571,7 +571,7 @@ ironTailAction = do
 1. Write a function to **draw *n* ** cards
 2. Add an additional operation to **discard** cards
   - Must include a predicate to select cards
-  - Outcome: whether a card was discarted
+  - Outcome: whether a card was discarded
 ]
 
 ---
@@ -613,11 +613,33 @@ interpretRandom = interpret $ \case
 
 ---
 
+# 🩻 Property-based testing
+
+Generate many _random_ tests for the same function (or set of them)
+
+Focus on **properties** rather than examples
+
+- PBT frameworks are good at generating corner cases (extreme values, empty lists, ...)
+
+---
+
 # ✅ Testing actions
 
 ### .grey[How can we test `ironTailAction`?]
 
 <img src="img/attack1.png" width="80%" />
+
+---
+
+# ✅ Testing actions
+
+### .grey[How can we test `ironTailAction`?]
+
+<img src="img/attack1.png" width="80%" />
+
+- If we get a tail as first result, we get 0
+- If our outcomes start with `n` heads, <br /> then the result is `30 * n`
+- Both implementations should coincide
 
 ---
 
@@ -696,16 +718,119 @@ interpretPure outcomes = go (cycle outcomes)
   where go :: [FlipOutcome]
            -> Program Action x -> x
         go _ (Done x) = x
-        go (result : nexts) (FlipCoin :>>= k) =
+        go ~(result : nexts) (FlipCoin :>>= k) =
           go nexts (k result)
 ```
 ]
 
 ---
 
-# Summary
+# 🏃 QuickCheck + Tasty 🥧
 
-- Alternative interpretations for testing
+**QuickCheck** is a well-known library for property-based testing
+
+- Define properties of functions
+- Support for custom generators
+
+**Tasty** is a test runner
+
+- Runs and reports over a set of tests
+
+---
+
+# 🏃 QuickCheck + Tasty 🥧
+
+🥧 `testGroup` + 🏃 `testProperty`
+- `outcomes` is randomly selected
+
+.code70[
+```haskell
+tests :: TestTree
+tests = testGroup "Iron Tail"
+  [ testProperty "non-negative" $ \outcomes -> 
+      interpretPure (outcomes ++ [Tails]) 
+                    ironTailAction >= 0
+  , ... ]
+```
+]
+
+---
+
+# ✋ A wrong property
+
+```haskell
+interpretPure ... ironTailAction > 0
+```
+
+A counter-example is found by QuickCheck
+
+.code70[
+```
+Iron Tail
+  non-negative:        FAIL
+    *** Failed! Falsified (after 1 test):
+    []
+    Use --quickcheck-replay=139730 to reproduce.
+    Use -p '/non-negative/' to rerun this test only.
+```
+]
+
+---
+
+# <img src="img/pikachu.png" width="32px" /> The "times 30" property
+
+To create good properties you must...
+
+- Be creative with the inputs
+- Ensure that inputs are correct
+
+.code70[
+```haskell
+testProperty "30 * # heads" $ \(hs :: Int) ->
+  hs > 0 ==>
+    let outcomes = replicate hs Heads ++ [Tails]
+    in interpretPure outcomes ironTailAction
+          == fromIntegral (hs * 30)
+```]
+
+---
+
+# ✅ Testing actions
+
+### .grey[🧑‍💻 Time for practice!]
+
+<img src="img/attack1.png" width="80%" />
+
+- If we get a tail as first result, we get 0
+- Both implementations should coincide
+- ...
+
+---
+
+# 📋 Summary
+
+### .grey[Haskell is a great language for DSLs]
+
+.margin-top[
+- ADTs model the domain sharply
+- We can model both data and processes
+    - `Operational` save lots of boilerplate
+- One model, many interpretations
+    - Useful for (property-based) testing
+]
+
+---
+
+# ↔️ Initial and final style
+
+**Initial** style: modeling actions using `data`
+
+- Variations: direct, free, operational
+
+**Final** style: modeling actions using `class`
+
+- Interpretations represented by `instance`s
+- Closer to `interface`s in other languages
 
 ---
 
