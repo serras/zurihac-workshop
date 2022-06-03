@@ -1,6 +1,6 @@
 {-# language LambdaCase #-}
 {-# language DeriveGeneric, DeriveAnyClass #-}
-module Session1.Task2 where
+module Task2 where
 
 import GHC.Natural
 import GHC.Generics

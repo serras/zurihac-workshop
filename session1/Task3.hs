@@ -1,4 +1,4 @@
-module Session1.Task3 where
+module Task3 where
 
 import Data.Text
 import GHC.Natural

@@ -2,13 +2,10 @@
 {-# language RankNTypes #-}
 {-# language LambdaCase #-}
 {-# language DeriveGeneric, DeriveAnyClass #-}
-{-# language ScopedTypeVariables #-}
-{-# language DerivingVia #-}
-module Session1.Operational2 where
+module Operational1 where
 
 import Control.Monad
 import Control.Monad.Loops
-import Control.Monad.State
 import Data.List (genericLength)
 import Data.Text (Text)
 import GHC.Natural
@@ -16,14 +13,24 @@ import GHC.Generics
 import System.Random
 import System.Random.Stateful
 
-import Test.Tasty
-import Test.Tasty.QuickCheck
-import Test.QuickCheck.Arbitrary.Generic
+data Energy = Colorless
+            | Grass | Fire | Water
+            | Lightning | Fighting | Psychic
+            | Darkness | Metal | Dragon
+
+data Card = PokemonCard { name    :: Text
+                        , typ     :: Energy
+                        , hp      :: Natural
+                        , attacks :: [Attack] }
+          | EnergyCard  { typ     :: Energy }
+
+data Attack = Attack { attackName :: Text
+                     , cost       :: [Energy]
+                     , damage     :: Natural }
 
 data FlipOutcome 
   = Heads | Tails
-  deriving (Show, Eq, Generic, Finite, Uniform)
-  deriving (Arbitrary) via GenericArbitrary FlipOutcome
+  deriving (Eq, Generic, Finite, Uniform)
 
 data Program instr a where
   Done   :: a -> Program instr a
@@ -33,6 +40,8 @@ data Program instr a where
 
 data Action a where
   FlipCoin :: Action FlipOutcome
+  DrawCard :: Action (Maybe Card)
+  QueryAttached :: Action [Card]
 
 perform :: instr a -> Program instr a
 perform action = action :>>= Done
@@ -63,25 +72,12 @@ interpret f = go
 interpretRandom :: Program Action a -> IO a
 interpretRandom = interpret $ \case
   FlipCoin -> uniformM globalStdGen
+  _ -> undefined
 
-interpretPure :: [FlipOutcome] -> Program Action a -> a
-interpretPure outcomes = 
-  flip evalState (cycle outcomes) . interpret f
-  where f :: Action x -> State [FlipOutcome] x
-        f FlipCoin = do
-          ~(result : nexts) <- get
-          put nexts
-          return result
-
-interpretPure2 :: [FlipOutcome] -> Program Action a -> a
-interpretPure2 outcomes = go (cycle outcomes)
-  where go :: [FlipOutcome] -> Program Action x -> x
-        go _ (Done x) = x
-        go ~(result : nexts) (FlipCoin :>>= k) =
-          go nexts (k result)
-
---- >>> interpretPure [Heads, Heads, Tails] ironTailAction
--- 60
+-- | Define Pikachu's "Iron Tail" attack
+--
+--   > Flip a coin until you get tails.
+--   > This attack does 30 damage for each heads.
 ironTailAction :: Program Action Natural
 ironTailAction = do
   outcome <- perform FlipCoin
@@ -94,14 +90,16 @@ ironTailAction2 = do
   heads <- unfoldWhileM (== Heads) (perform FlipCoin)
   pure $ 30 * genericLength heads
 
-tests :: TestTree
-tests = 
-  testGroup "Iron Tail"
-    [ testProperty "non-negative" $ \outcomes -> 
-        interpretPure (outcomes ++ [Tails]) ironTailAction >= 0
-    , testProperty "30 times # of heads" $ \(noOfHeads :: Int) ->
-        noOfHeads > 0 ==>
-          interpretPure (replicate noOfHeads Heads ++ [Tails]) ironTailAction
-            == fromIntegral (noOfHeads * 30)
-    -- write a property for implementations to coincide
-    ]
+-- | Draw 'n' cards.
+--
+--   The resulting list may have fewer cards
+--   than requested, if there were not enough.
+drawN :: Natural -> Program Action [Card]
+drawN n = _
+
+-- | Define "Ice Bonus" attacj
+--
+--   > Discard a Water Energy card from your hand.
+--   > If you do, draw 3 cards.
+iceBonusAction :: Program Action Natural
+iceBonusAction = _

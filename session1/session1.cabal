@@ -1,7 +1,7 @@
 cabal-version:      2.4
-name:               zurihac-workshop
+name:               session1
 version:            0.1.0.0
-synopsis:           Workshop proudly presented at ZuriHac 2022
+synopsis:           The Legend of DSLs - Workshop presented at ZuriHac 2022
 homepage:
 license:            NONE
 author:             Alejandro Serrano
@@ -11,13 +11,12 @@ extra-source-files:
 
 library
     exposed-modules:
-      Session1.Task1, 
-      Session1.Task2, 
-      Session1.Task3, 
-      Session1.Operational1, 
-      Session1.Operational2
+      Task1
+      Task2
+      Task3
+      Operational1
+      Operational2
     -- other-modules:
     build-depends:    base >= 4.14, text, random >= 1.2, monad-loops, mtl, tasty, tasty-quickcheck, generic-arbitrary
-    hs-source-dirs:   src
     default-language: Haskell2010
     ghc-options:      -fdefer-typed-holes

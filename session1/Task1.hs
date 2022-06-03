@@ -1,5 +1,5 @@
 {-# language OverloadedStrings #-}
-module Session1.Task1 where
+module Task1 where
 
 import Data.Text
 import GHC.Natural

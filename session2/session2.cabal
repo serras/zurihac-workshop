@@ -1,0 +1,17 @@
+cabal-version:      2.4
+name:               session2
+version:            0.1.0.0
+synopsis:           Adventures in IO - Workshop presented at ZuriHac 2022
+homepage:
+license:            NONE
+author:             Alejandro Serrano
+maintainer:         trupill@gmail.com
+extra-source-files:
+    README.md
+
+library
+    exposed-modules:  DiceRoll
+    -- other-modules:
+    build-depends:    base >= 4.14, network-simple
+    default-language: Haskell2010
+    ghc-options:      -fdefer-typed-holes
