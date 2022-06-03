@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "session1"
+      component: "session1"
+    - path: "session2"
+      component: "session2"

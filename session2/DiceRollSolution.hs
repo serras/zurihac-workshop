@@ -1,6 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language TypeApplications #-}
-module DiceRoll where
+module DiceRollSolution where
 
 import Control.Monad.IO.Class
 import Data.ByteString
@@ -26,4 +26,8 @@ diceServer = serve "127.0.0.1" "8080" $ \(skt, adr) -> go skt
           go skt
 
 diceClient :: Word64 -> IO Word64
-diceClient n = _
+diceClient n = connect "127.0.0.1" "8080" $ \(skt, _) -> do
+  send skt (encode n)
+  Just bytes <- recv skt 8
+  let Right result = decode @Word64 bytes
+  pure result

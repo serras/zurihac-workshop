@@ -32,7 +32,7 @@ Alejandro Serrano @ ZuriHac 2022
 
 1. ~~Domain-specific languages <br /> Representing actions and scripts <br /> Property-based testing~~
 
-2. Communicating over the network <br /> Serialization (without boilerplate) <br /> Resource and error handling <br /> Concurrency across threads
+2. Communicating over the network <br /> Serialization (without boilerplate) <br /> Error handling <br /> Concurrency across threads
 
 ---
 
@@ -129,7 +129,261 @@ _(mandatory XKCD strip)_
 
 ---
 
+# 🖧 Server-side `network-simple`
+
+Let's practice signature-reading skills
+
+.code70[
+```haskell
+serve
+  :: MonadIO m
+  => HostPreference
+  -- ^ Host to bind.
+  -> ServiceName
+  -- ^ Server service port to bind.
+  -> ((Socket, SockAddr) -> IO ())
+  -- ^ Computation to run in a different thread
+  --   once an incoming connection is accepted.
+  -> m a -- ^ This function never returns.
+```
+]
+
+---
+
+# 🖧 Server-side `network-simple`
+
+`serve` takes care of:
+
+- Listening all the time at the given port
+- Whenever a new connection request comes <br/> 1️⃣ accept it, <br /> 2️⃣ **spawn a new thread**, <br /> 3️⃣ run the callback.
+
+---
+
+# ➿ `go` pattern
+
+Once we accept, we go into an (infinite) _loop_
+
+- Usually with a recursive `go` function
+
+.code70[
+```haskell
+diceServer :: IO ()
+diceServer = serve "*" "8080" $ \(skt, _) -> do
+  -- initialization
+  go skt
+  where go :: Socket -> IO () 
+        go skt = do
+          -- read and parse request
+          -- send a response
+          go skt  -- and over again!
+```
+]
+
+---
+
+# 🖧 Server-side `network-simple`
+
+Requests and responses are 64-bit numbers
+
+.little-margin-top[.code70[
+```haskell
+go :: Socket -> IO ()
+go skt = do
+  -- read and parse request
+  mayBytes <- recv skt 8
+  case mayBytes of
+    Nothing -> pure ()  -- done
+    Just bytes -> do
+      let Right max = decode @Word64 bytes
+      response <- encode <$> randomRIO (0, max)
+      -- send a response
+      send skt response
+      go skt  -- and over again!
+```
+]]
+
+---
+
+# 🏁 Recognizing end-of-connection
+
+If `recv` returns nothing, we stop the loop
+
+```haskell
+go skt = do
+  -- read and parse request
+  mayBytes <- recv skt 8
+  case mayBytes of
+    Nothing -> pure ()  -- done
+    Just bytes -> do
+      ...
+      go skt  -- and over again!
+```
+
+---
+
+# 🔄 Serialization
+
+Conversion to and from `ByteString`
+
+- `cereal` for binary encoding
+- `aeson` for JSON
+- `avro` for Avro (used in Kafka)
+- ...
+
+---
+
+# 🔄 Serialization
+
+Users implement instances of some classes
+
+- Just one, like `Serialize` in `cereal`
+- Two, like `ToJSON` and `FromJSON`
+
+And then conversion is provided by generic
+
+```haskell
+encode :: Serialize a {- or -} ToFormat a
+       => a -> ByteString
+decode :: Serialize a {- or -} FromFormat a
+       => ByteString -> Either Error a
+```
+
+---
+
+# 🪢 Type applications
+
+Help the compiler to disambiguate types
+
+```haskell
+decode @Word64 bytes
+```
+
+Other possibility is `ScopedTypeVariables`
+
+---
+
+# 🎲 Dice roll client
+
+## .grey[🧑‍💻 Time for practice!]
+
+.code70[
+```haskell
+connect
+  :: (MonadIO m, MonadMask m)
+  => HostName
+  -- ^ Server hostname or IP address.
+  -> ServiceName 
+  -- ^ Server service port.
+  -> ((Socket, SockAddr) -> m r)
+  -- ^ Computation taking the communication
+  --   socket and the server address.
+  -> m r
+```
+]
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+2. Implement `Serialize` instances
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+
+```haskell
+data Request 
+  = DiceRoll  { max    :: Word64 }
+  | Increment { number :: Word64 }
+
+type Response = Word64
+```
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+2. ~~Implement `Serialize` instances~~
+
+## Use automatic deriving!
+
+---
+
+# 🤖 Automatic deriving
+
+Compiler writes instances for us
+
+- `Eq`, `Show`, and others are built-in
+- Extensible with the `Generic` mechanism
+
+.code70[
+```haskell
+{-# language DeriveGeneric, DeriveAnyClass #-}
+
+data Request 
+  = DiceRoll  { max    :: Word64 }
+  | Increment { number :: Word64 }
+  deriving (Generic, Serialize)
+```
+]
+
+---
+
 # 💬 Greeting in the cloud
+
+## .grey[🧑‍💻 Time for practice!]
+
+Implement your own greeting service
+
+- Choose whatever requests you want
+- (De)serialize using JSON
+- Implement the server using the `go` pattern
+
+---
+
+# ‼️ Exceptions
+
+You forget to start the server and...
+
+```
+> DiceRoll.diceClient 3
+*** Exception: Network.Socket.connect: 
+      <socket: 12>: does not exist
+      (Connection refused)
+```
+
+## 😱 WAAAAAAT????
+
+---
+
+# ‼️ Exceptions
+
+Haskell's `IO` runtime uses **exceptions**
+
+- Network or connection problems
+- File (or resource) not found
+- and many more input/output problems
+
+Even some built-in features use exceptions
+
+- Pattern match failure
+- `undefined` and `error`
 
 ---
 
