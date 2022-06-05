@@ -516,7 +516,7 @@ One cannot read the dirty state of another
 ```haskell
 do v <- newTVarIO 0
    replicateM 3 $ async $  -- 3 threads
-     atomically $ do       -- tx boundary
+     atomically $ do       -- tx. boundary
        n <- readTVar v     --    ║
        writeTVar (n + 1)   --   ═╝
 ```
@@ -712,6 +712,25 @@ Transaction may include pure computations
 
 ---
 
+# 🪡 STM-enabled data structures
+
+Many users `==>` lots of contention
+
+- Every `JoinGame` "wakes up" every `NewGame`
+- But we only care about one code!
+
+--
+
+### More fine-grained data structures
+
+.margin-top[
+- `stm-containers` brings maps and sets
+- `stm` includes unbounded queues
+- `stm-chans` adds bounded queues
+]
+
+---
+
 # 📋 Summary
 
 ### .grey[Lots of practice in the `IO` monad]
@@ -738,7 +757,7 @@ Transaction may include pure computations
   <tr>
     <td style="vertical-align: top"><img src="img/libs.png" width="100%" /></td>
     <td width="70%">
-      <div style="margin-top: -7px; margin-bottom: -30px" class="grey">Many useful libraries in the Haskell ecosystem</div>
+      <div style="margin-top: -7px; margin-bottom: -30px" class="grey"><b>Many useful libraries in the Haskell ecosystem</b></div>
         <ul>
           <li>More on exceptions and resource management</li>
           <li>I/O using streaming</li>
