@@ -387,13 +387,366 @@ Even some built-in features use exceptions
 
 ---
 
-1. Build a server for dice rolls
-2. Learn how to serialize
-3. Async server for RPS
-   - First connect and get a code
-   - The other person gets a code too
-4. Handle exceptions and resources
-   - Disconnection of the other
+# ⁉️ Dealing with exceptions
+
+~~Use `Control.Exception` from `base`~~
+
+🅰️ Use `Control.Exception.Safe` <br /> &nbsp;&nbsp;&nbsp;&nbsp; from `safe-exceptions`
+
+🅱️ Use `UnliftIO.Exception` from `unliftio`
+
+### .grey[All three provide the same API]
+
+---
+
+# ⁉️ Dealing with exceptions
+
+If you want to perform some handling
+
+```haskell
+catch :: (MonadCatch m, Exception e)
+      => m a -> (e -> m a) -> m a
+```
+
+If you want to "purify" the problem
+
+```haskell
+try :: (MonadCatch m, Exception e)
+    => m a -> m (Either e a)
+```
+
+---
+
+# ⁉️ Idiomatic usage of `catch`
+
+.code70[
+```haskell
+diceClient :: Word64 -> IO (Maybe Word64)
+diceClient n = 
+  connect "127.0.0.1" "8080" (\(skt, _) -> do
+    ...)
+  `catch`
+  (\(e :: IOException) -> pure Nothing)
+```
+]
+
+- Use `catch` infix
+- Use `ScopedTypeVariables` to indicate which exceptions are to be caught
+
+---
+
+# 🫅 Exception hierarchy
+
+Exception types for a hierarchy
+
+- The top is called `SomeException`
+
+However, if you want to "swallow" all exceptions, better use
+
+.code70[
+```haskell
+catchAny :: MonadCatch m
+         => m a -> (SomeException -> m a) -> m a 
+  tryAny :: MonadCatch m
+         => m a -> m (Either SomeException a) 
+```
+]
+
+---
+
+# 🧰 Resource management
+
+### .grey[Exception + laziness = 😵‍💫]
+
+This makes resource management challenging <br /> (even more than usual)
+
+🅰️ Use `resourcet` <br />
+🅱️ Use `managed` <br />
+➕ `resource-pool` to handle pools of resources
+
+---
+
+# ☁️🪨🧻✂️ Cloudy RPS
+
+☁️ Central server which processes requests
+
+1️⃣ Player #1 joins and gets a code
+
+2️⃣ Player #2 joins the session using that code
+
+.grey[
+🪨🧻✂️ Players play RPS as much as they want
+- The server receives the choices and sends the winner to both players
+]
+
+---
+
+# ☁️🪨🧻✂️ Cloudy RPS
+
+.grey[
+☁️ Central server which processes requests
+
+1️⃣ Player #1 joins and gets a code
+
+2️⃣ Player #2 joins the session using that code
+]
+
+## 🧵 Each player runs in a different thread
+
+🪡 How to communicate across boundaries?
+
+---
+
+# 🪡 Communication across threads
+
+~~Use `Control.Concurrent` from `base`~~
+
+Use `stm` (Software Transactional Memory)
+
+- Similar concept as in databases
+- Transactions are isolated and atomic
+    - One cannot read the dirty state of another
+
+---
+
+# 🪡 Software Transactional Memory
+
+One cannot read the dirty state of another
+
+```haskell
+do v <- newTVarIO 0
+   replicateM 3 $ async $  -- 3 threads
+     atomically $ do       -- tx boundary
+       n <- readTVar v     --    ║
+       writeTVar (n + 1)   --   ═╝
+```
+
+The end value of `v` is **guaranteed** to be 3
+
+---
+
+# ♻️ Server as state machine
+
+When a user connects...
+
+- If they send `NewGame`, send a `GameCode`
+   - When the other player connects, </br> send `GameStarts`
+- If they send `JoinGame` and the code
+    - If the code exists, send `GameStarts`
+    - Otherwise, send `GameNotFound` and close
+- Otherwise, close the connection
+
+---
+
+# 🪡 Shared state
+
+Dictionary (key-value map)
+
+- Keys are `GameCode`s
+- Values are the sockets
+
+--
+
+```haskell
+rpsServer = do
+  -- initialize shared state
+  state <- newTVarIO @State Map.empty
+  serve "127.0.0.1" "8080" $ \(skt, _) ->
+    worker state skt
+
+worker :: TVar State -> Socket -> IO ()
+```
+
+---
+
+# 👷 Cloudy RPS worker
+
+Trick to avoid repeating `state` and `skt`
+
+.code70[
+```haskell
+worker :: TVar State -> Socket -> IO ()
+worker state skt = start
+  where
+    start = do
+      ...
+
+    newGame = ...
+    joinGame code = ...
+
+    play = putStrLn "play!"
+```
+]
+
+---
+
+# 👷 Cloudy RPS worker
+
+Wait for the first message to come
+
+.little-margin-top[.code70[
+```haskell
+worker state skt = start
+  where
+    start = do
+      Just req <- recvJson skt
+      case req of
+        NewGame -> newGame
+        JoinGame code -> joinGame code
+```
+
+```haskell
+-- read a line and deserialize
+recvJson :: (MonadIO m, FromJSON a)
+         => Socket -> m (Maybe a)
+```
+]
+]
+
+---
+
+# 👷 Cloudy RPS worker
+
+.code60[
+```haskell
+worker state skt = start
+  where
+    newGame = do
+      -- record ourselves in new code
+      code <- randomCode
+      atomically $
+        modifyTVar state (Map.insert code [skt])
+      sendJson skt (GameCode code)
+
+      -- wait for the other message
+      atomically $ do
+        Just skts <- Map.lookup code <$> readTVar state
+        check (length skts > 1)
+      sendJson skt GameStarts
+      
+      -- go!
+      play
+```
+]
+
+---
+
+# 🌀 Retry transactions
+
+.code70[
+```haskell
+-- wait for the other message
+atomically $ do
+  Just skts <- Map.lookup code <$> readTVar state
+  check (length skts > 1)
+```
+]
+
+- `check` aborts the tx. if the condition is `False`
+- The tx. is only retried when any `TVar` mentioned changes its value
+
+### `TVar` works as a synchronization mechanism
+
+---
+
+# 👷 Cloudy RPS worker
+
+.code60[
+```haskell
+worker state skt = start
+  where
+    joinGame code = do
+      found <- atomically $ do
+        -- tx. boundary ════════════════════════════════╗
+        result <- Map.lookup code <$> readTVar state -- ║
+        case result of                               -- ║
+          Nothing  -> pure False                     -- ║
+          Just skts -> do                            -- ║
+            modifyTVar state $                       -- ║
+              Map.insertWith (<>) code [skt]         -- ║
+            pure True                                -- ║
+        -- ═════════════════════════════════════════════╝
+      if found
+         then sendJson skt GameStarts >> play
+         else sendJson skt GameNotFound
+```
+]
+
+---
+
+# 👷 Cloudy RPS worker
+
+.code60[
+```haskell
+worker state skt = start
+  where
+    joinGame code = do
+      found <- atomically $ do
+        -- tx. boundary ════════════════════════════════╗
+        result <- Map.lookup code <$> readTVar state -- ║
+        case result of                               -- ║
+          Nothing  -> pure False                     -- ║
+          Just skts -> do                            -- ║
+            modifyTVar state $                       -- ║
+              Map.insertWith (<>) code [skt]         -- ║
+            pure True                                -- ║
+        -- ═════════════════════════════════════════════╝
+```
+]
+
+Transaction may include pure computations
+
+---
+
+# ☁️🪨🧻✂️ Cloudy RPS
+
+## .grey[🧑‍💻 Time for practice!]
+
+### Finish the implementation of the server
+
+1. Change `State` to represent on-going games
+2. Use `TVar` as synchronization mechanism
+3. Write a single `play` implementation
+
+### Finish the implementation of the clients
+
+---
+
+# 📋 Summary
+
+### .grey[Lots of practice in the `IO` monad]
+
+.margin-top[
+- High-level networking with `network-simple`
+- Automatic deriving = <br />&nbsp;&nbsp;&nbsp;serialization without the boilerplate
+- GHC uses exceptions for I/O errors
+- `stm` for communication across threads
+]
+
+--
+
+- Spawning and controlling threads with `async`
+- `MonadIO` and `MonadUnliftIO`
+
+---
+
+# 😸 A word from our sponsor
+
+<br />
+
+<table>
+  <tr>
+    <td style="vertical-align: top"><img src="img/libs.png" width="100%" /></td>
+    <td width="70%">
+      <div style="margin-top: -7px; margin-bottom: -30px" class="grey">Many useful libraries in the Haskell ecosystem</div>
+        <ul>
+          <li>More on exceptions and resource management</li>
+          <li>I/O using streaming</li>
+          <li>Servers and clients with HTTP</li>
+        </ul>
+    </td>
+  </tr>
+</table>
 
 ---
 

@@ -10,8 +10,8 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules:  DiceRoll, DiceRollSolution, DiceRollIncrement, Greeting
+    exposed-modules:  DiceRoll, DiceRollSolution, DiceRollIncrement, Greeting, RockPaperScissors
     -- other-modules:
-    build-depends:    base >= 4.14, network-simple, bytestring, cereal, random, aeson, text
+    build-depends:    base >= 4.14, network-simple, bytestring, cereal, random, aeson, text, safe-exceptions, stm, unordered-containers
     default-language: Haskell2010
     ghc-options:      -fdefer-typed-holes
