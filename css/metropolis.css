@@ -107,6 +107,11 @@ position: absolute;
   margin-bottom: -15px;
 }
 
+.very-little-margin-top {
+  margin-top: -45px;
+  margin-bottom: -15px;
+}
+
 .less-line-height {
   line-height: 1;
 }
