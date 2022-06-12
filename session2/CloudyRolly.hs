@@ -2,7 +2,7 @@
 {-# language ScopedTypeVariables #-}
 {-# language TypeApplications #-}
 {-# language DeriveGeneric, DeriveAnyClass #-}
-module RockPaperScissors where
+module CloudyRolly where
 
 import Control.Concurrent.STM
 import Control.Monad (replicateM)
@@ -33,14 +33,14 @@ data Response
 
 type State = HashMap GameCode [Socket]
 
-rpsServer :: IO ()
-rpsServer = do
+crServer :: IO ()
+crServer = do
   state <- newTVarIO @State Map.empty
   serve "127.0.0.1" "8080" $ \(skt, _) ->
-    rpsServerWorker state skt
+    crServerWorker state skt
 
-rpsServerWorker :: TVar State -> Socket -> IO ()
-rpsServerWorker state skt = start
+crServerWorker :: TVar State -> Socket -> IO ()
+crServerWorker state skt = start
   where
     start = do
       Just req <- recvJson skt

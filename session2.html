@@ -74,34 +74,18 @@ Alejandro Serrano @ ZuriHac 2022
 
 ---
 
-# 🪨 Rock 🧻 Paper ✂️ Scissors
+# 🎲 Dice roll
 
-<div style="margin-top: -20px">&nbsp;</div>
-
-<img src="img/rps.png" width="95%" />
+<img src="img/diceroll.jpg" width="90%" />
 
 ---
 
-# 🪨 Rock 🧻 Paper ✂️ Scissors
+# 🎲 Dice roll in the cloud ☁️
 
-<div style="margin-top: -20px">☁️ in the cloud</div>
-
-<img src="img/rps.png" width="95%" />
+<img src="img/diceroll.jpg" width="90%" />
 
 ---
 
-# ☁️🪨🧻✂️ Cloudy RPS
-
-☁️ Central server which processes requests
-
-1️⃣ Player #1 joins and gets a code
-
-2️⃣ Player #2 joins the session using that code
-
-🪨🧻✂️ Players play RPS as much as they want
-- The server receives the choices and sends the winner to both players
-
----
 
 # 📚 Our stack
 
@@ -115,7 +99,7 @@ Alejandro Serrano @ ZuriHac 2022
 
 ---
 
-# 🎲 Dice roll in the cloud
+# 🎲 One-person dice roll
 
 🔢 Client requests a roll of _n_ faces
 
@@ -262,7 +246,7 @@ Other possibility is `ScopedTypeVariables`
 
 ---
 
-# 🎲 Dice roll client
+# 🎲 One-person dice roll client
 
 ## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
 
@@ -492,7 +476,7 @@ The type `Request` can be inferred
 
 ---
 
-# ☁️🪨🧻✂️ Cloudy RPS
+# ☁️🎲 Cloudy Rolly
 
 ☁️ Central server which processes requests
 
@@ -501,13 +485,13 @@ The type `Request` can be inferred
 2️⃣ Player #2 joins the session using that code
 
 .grey[
-🪨🧻✂️ Players play RPS as much as they want
-- The server receives the choices and sends the winner to both players
+🎲 Players send a new request for rolling
+- The server sends the winner to both players
 ]
 
 ---
 
-# ☁️🪨🧻✂️ Cloudy RPS
+# ☁️🎲 Cloudy Rolly
 
 .grey[
 ☁️ Central server which processes requests
@@ -574,7 +558,7 @@ Dictionary (key-value map)
 --
 
 ```haskell
-rpsServer = do
+crServer = do
   -- initialize shared state
   state <- newTVarIO @State Map.empty
   serve "127.0.0.1" "8080" $ \(skt, _) ->
@@ -585,7 +569,7 @@ worker :: TVar State -> Socket -> IO ()
 
 ---
 
-# 👷 Cloudy RPS worker
+# 👷 Cloudy Rolly worker
 
 Trick to avoid repeating `state` and `skt`
 
@@ -606,7 +590,7 @@ worker state skt = start
 
 ---
 
-# 👷 Cloudy RPS worker
+# 👷 Cloudy Rolly worker
 
 Wait for the first message to come
 
@@ -631,7 +615,7 @@ recvJson :: (MonadIO m, FromJSON a)
 
 ---
 
-# 👷 Cloudy RPS worker
+# 👷 Cloudy Rolly worker
 
 .code60[
 ```haskell
@@ -675,7 +659,7 @@ atomically $ do
 
 ---
 
-# 👷 Cloudy RPS worker
+# 👷 Cloudy Rolly worker
 
 .code60[
 ```haskell
@@ -700,7 +684,7 @@ worker state skt = start
 
 ---
 
-# 👷 Cloudy RPS worker
+# 👷 Cloudy Rolly worker
 
 .code60[
 ```haskell
@@ -724,7 +708,7 @@ Transaction may include pure computations
 
 ---
 
-# ☁️🪨🧻✂️ Cloudy RPS
+# ☁️🎲 Cloudy Rolly
 
 ## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
 
