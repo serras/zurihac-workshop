@@ -283,80 +283,6 @@ connect
 
 ---
 
-# 🎲 Dice roll and increment
-
-### .grey[We want to extend the functionality]
-
-How do we (de)serialize command and data?
-
-1. Express them as data types
-2. Implement `Serialize` instances
-
----
-
-# 🎲 Dice roll and increment
-
-### .grey[We want to extend the functionality]
-
-How do we (de)serialize command and data?
-
-1. Express them as data types
-
-```haskell
-data Request 
-  = DiceRoll  { max    :: Word64 }
-  | Increment { number :: Word64 }
-
-type Response = Word64
-```
-
----
-
-# 🎲 Dice roll and increment
-
-### .grey[We want to extend the functionality]
-
-How do we (de)serialize command and data?
-
-1. Express them as data types
-2. ~~Implement `Serialize` instances~~
-
-## Use automatic deriving!
-
----
-
-# 🤖 Automatic deriving
-
-Compiler writes instances for us
-
-- `Eq`, `Show`, and others are built-in
-- Extensible with the `Generic` mechanism
-
-.code70[
-```haskell
-{-# language DeriveGeneric, DeriveAnyClass #-}
-
-data Request 
-  = DiceRoll  { max    :: Word64 }
-  | Increment { number :: Word64 }
-  deriving (Generic, Serialize)
-```
-]
-
----
-
-# 💬 Greeting in the cloud
-
-## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
-
-Implement your own greeting service
-
-- Choose whatever requests you want
-- (De)serialize using JSON
-- Implement the server using the `go` pattern
-
----
-
 # ‼️ Exceptions
 
 You forget to start the server and...
@@ -463,6 +389,106 @@ This makes resource management challenging <br /> (even more than usual)
 🅰️ Use `resourcet` <br />
 🅱️ Use `managed` <br />
 ➕ `resource-pool` to handle pools of resources
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+2. Implement `Serialize` instances
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+
+```haskell
+data Request 
+  = DiceRoll  { max    :: Word64 }
+  | Increment { number :: Word64 }
+
+type Response = Word64
+```
+
+---
+
+# 🎲 Dice roll and increment
+
+### .grey[We want to extend the functionality]
+
+How do we (de)serialize command and data?
+
+1. Express them as data types
+2. ~~Implement `Serialize` instances~~
+
+## Use automatic deriving!
+
+---
+
+# 🤖 Automatic deriving
+
+Compiler writes instances for us
+
+- `Eq`, `Show`, and others are built-in
+- Extensible with the `Generic` mechanism
+
+.code70[
+```haskell
+{-# language DeriveGeneric, DeriveAnyClass #-}
+
+data Request 
+  = DiceRoll  { max    :: Word64 }
+  | Increment { number :: Word64 }
+  deriving (Generic, Serialize)
+```
+]
+
+---
+
+# 🖧 Updated server-side
+
+```haskell
+let Right max = decode @Word64 bytes
+response <- encode <$> randomRIO (1, max)
+```
+
+Deserialize with the new type
+
+```haskell
+let Right req = decode @Request bytes
+response <- case req of
+  DiceRoll max -> randomRIO (1, max)
+  Increment n  -> pure (n + 1)
+```
+
+---
+
+# 🖧 Updated server-side
+
+```haskell
+let Right max = decode @Word64 bytes
+response <- encode <$> randomRIO (1, max)
+```
+
+Deserialize with the new type
+
+```haskell
+let Right req = decode bytes
+response <- case req of
+  DiceRoll max -> randomRIO (1, max)
+  Increment n  -> pure (n + 1)
+```
+
+The type `Request` can be inferred
 
 ---
 
@@ -736,9 +762,9 @@ Many users `==>` lots of contention
 ### .grey[Lots of practice in the `IO` monad]
 
 .margin-top[
+- GHC uses exceptions for I/O errors
 - High-level networking with `network-simple`
 - Automatic deriving = <br />&nbsp;&nbsp;&nbsp;serialization without the boilerplate
-- GHC uses exceptions for I/O errors
 - `stm` for communication across threads
 ]
 
