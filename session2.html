@@ -267,6 +267,30 @@ connect
 
 ---
 
+# 🎲 One-person dice roll client
+
+## .grey[🤔 How do I test this?] .font50[`serras.github.io/zurihac-workshop`]
+
+.code60[
+```haskell
+$ cabal repl session2
+> import DiceRoll
+DiceRoll> diceServer
+^C  -- use Ctrl + C to stop
+```
+
+```haskell
+$ cabal repl session2
+> import DiceRoll
+DiceRoll> diceClient 6
+3
+DiceRoll> diceClient 10
+9
+```
+]
+
+---
+
 # ‼️ Exceptions
 
 You forget to start the server and...
