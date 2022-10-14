@@ -33,3 +33,8 @@ interpretRandom _ = _
   where
     flipCoin :: IO FlipOutcome
     flipCoin = uniformM globalStdGen
+
+interpretPure :: [FlipOutcome] -> Action -> Natural
+interpretPure (result : future) (FlipCoin next) =
+  interpretPure future (next result)
+interpretPure _future (Damage n) = n

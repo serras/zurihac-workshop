@@ -1,7 +1,8 @@
+{-# LANGUAGE LambdaCase #-}
 module Task3 where
 
-import Data.Text
-import GHC.Natural
+import Data.Text ( Text )
+import GHC.Natural ( Natural )
 
 data Energy = Colorless
             | Grass | Fire | Water
@@ -26,3 +27,12 @@ data Action
   | DrawCard (Maybe Card -> Action)
   | QueryAttached ([Card] -> Action)
   | Damage Natural
+
+drawN :: Natural -> ([Card] -> Action) -> Action
+drawN n next = go n []
+  where
+    go n acc
+      | n <= 0    = next (reverse acc)
+      | otherwise = DrawCard $ \case
+                      Nothing -> next (reverse acc)
+                      Just c  -> go (n - 1) (c : acc)
