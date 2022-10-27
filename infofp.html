@@ -746,7 +746,7 @@ Why is it **not** possible to write `Monad` for this?
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 ```
 
@@ -762,7 +762,7 @@ Write the `Monad Action` instance
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
@@ -776,7 +776,7 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
@@ -791,7 +791,7 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
@@ -806,12 +806,12 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
     -- a ↰   ↱ Action a
-  return x = Return
+  return x = Return x
   x >>= f = _
 ```
 
@@ -821,11 +821,11 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   -- Action a -> (a -> Action b) -> Action b
   x >>= f = _
 ```
@@ -840,11 +840,11 @@ Pattern matching on `Action` keeps us going
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   --   a ↰     ↱ (a -> Action b)
   Return x >>= f = _    -- Action b
   FlipCoin next >>= f = _
@@ -856,11 +856,11 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   --   a ↰     ↱ (a -> Action b)
   Return x >>= f = f x  -- Action b
   FlipCoin next >>= f = _
@@ -872,11 +872,11 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   Return x >>= f = f x  -- Action b
   -- FlipCoin -> Action a
   --         ↑      ↱ (a -> Action b)
@@ -893,11 +893,11 @@ We are mixing two blocks of actions
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   Return x >>= f = f x  -- Action b
   -- FlipCoin -> Action a
   --         ↑      ↱ (a -> Action b)
@@ -911,11 +911,11 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   Return x >>= f = f x  -- Action b
   -- FlipCoin -> Action a
   --         ↑      ↱ (a -> Action b)
@@ -929,11 +929,11 @@ instance Monad Action where
 
 ```haskell
 data Action a
-  = FlipCoin (FlipOutcome -> Action)
+  = FlipCoin (FlipOutcome -> Action a)
   | Return a  -- "ends" the computation
 
 instance Monad Action where
-  return x = Return
+  return x = Return x
   Return x >>= f = f x  -- Action b
   -- FlipCoin -> Action a
   --         ↑      ↱ (a -> Action b)
