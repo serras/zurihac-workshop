@@ -21,32 +21,77 @@ count: false
 .less-line-height[
 Alejandro Serrano @ INFOFP 2022-23
 
-.grey[🐦 @trupill - 🐈‍⬛ serras - 👨‍💻 47 Degrees / Xebia]
+.grey[🐦 @trupill - 👨‍💻 Xebia Functional <br /> `serranofp.com`]
 ]
 
 ---
 
-# 🏗️ Our approach
+# Last year...
 
-### .grey[Explanations interleaved with tasks]
-
-1. Representing cards
-2. Representing actions
-3. Testing actions
+```
+             Your knowledge of C#
+      + Your knowledge of Haskell
+---------------------------------
+Ready for mainstream programming!
+```
 
 ---
 
-# 🏗️ Our approach
+# Last year...
 
-### .grey[Explanations interleaved with tasks]
+```
+             Your knowledge of C#
+      + Your knowledge of Haskell
+---------------------------------
+Ready for mainstream programming!
+```
 
-1. Representing cards
-2. Representing actions
-3. Testing actions
+Last decade has been a good one for programing languages
 
-## .grey[Domain-specific Language (DSL)]
+- Java or C# were stuck in 2000s
+- Now we have Scala, Kotlin, Swift, Elixir!
+- And Java and C# are catching up
 
-Implementation of the _Ubiquitous Language_ idea from DDD, the code speaks the domain
+---
+
+# Higher order functions are just there
+
+### .grey[You understand this!]
+
+From the Java documentation
+
+.code70[
+```java
+int sum = 
+  widgets.stream()
+         .filter(w -> w.getColor() == RED)
+         .mapToInt(w -> w.getWeight())
+         .sum();
+```
+]
+
+.font60[
+Reference: <br /> `https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html`
+]
+
+---
+
+# Last year...
+
+```
+             Your knowledge of C#
+      + Your knowledge of Haskell
+---------------------------------
+Ready for mainstream programming!
+```
+
+> Most of these ideas come from FP
+
+INFOFP has become really relevant
+
+--
+
+## **Let's do something else instead!**
 
 ---
 
@@ -68,6 +113,22 @@ Players take turns drawing and playing cards
     </td>
   </tr>
 </table>
+
+---
+
+# 🏗️ Our approach
+
+### .grey[Explanations interleaved with tasks]
+
+1. Representing cards
+2. Representing actions
+3. Testing actions
+
+--
+
+## .grey[Domain-specific Language (DSL)]
+
+Implementation of the _Ubiquitous Language_ idea from DDD, the code speaks the domain
 
 ---
 
@@ -215,20 +276,6 @@ Define values for the following cards
 <img src="img/grookeycard.png" width="40%" />
 <img src="img/goomycard.png" width="40%" />
 </div>
-
----
-
-# 🧑‍💻 Time for practice!
-
-.very-little-margin-top[
-### `serras.github.io/zurihac-workshop`
-]
-
-Check whether some energy cards are enough to "pay" for the cost of an attack
-
-```haskell
-enoughEnergy :: [Energy] -> [Card] -> Bool
-```
 
 ---
 
@@ -449,7 +496,7 @@ data Action
 
 ## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
 
-1. Write a function to **draw *n* ** cards
+Write a function to **draw *n* ** cards
 
 _What should be the function signature?_
 
@@ -461,6 +508,28 @@ drawN :: Natural             -- amount
       -> Action
 drawN n next = _
 ```
+
+---
+
+# 🎴 Actions about cards
+
+## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
+
+Write a function to **draw *n* ** cards
+
+.code70[
+```haskell
+drawN n next = go n []
+  where
+    go n acc
+      | n <= 0
+      = next (reverse acc)
+      | otherwise
+      = DrawCard $ \case
+          Nothing -> next (reverse acc)
+          Just c  -> go (n - 1) (c : acc)
+```
+]
 
 ---
 
@@ -620,15 +689,310 @@ testProperty "30 * # heads" $ \(hs :: Int) ->
 
 ---
 
-# ✅ Testing actions
+class: center, middle, title-slide
+count: false
 
-### .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
+# 👻 Spooky slides ahead
+
+---
+
+# 👎 This is terrible
 
 <img src="img/attack1.png" width="80%" />
 
-- If we get a tail as first result, we get 0
-- Both implementations should coincide
-- ...
+```haskell
+ironTailAction = go 0
+  where
+    go acc = FlipCoin $ \case
+      Tails -> Damage acc
+      Heads -> go (acc + 30)
+```
+
+---
+
+# 👍 This reads better
+
+<img src="img/attack1.png" width="80%" />
+
+```haskell
+ironTailAction = do
+  heads <- while (/= Tails) flipCoin
+  return (30 * length heads)
+```
+
+--
+
+## We are building our own .grey[language]
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action
+  = FlipCoin (FlipOutcome -> Action)
+  | Damage Natural
+```
+
+Why is it **not** possible to write `Monad` for this?
+
+--
+
+`Monad` applies to .grey[**type constructors**]
+
+- We need to turn this into `Action a`
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+```
+
+--
+
+## .grey[🧑‍💻 Time for practice!] .font50[`serras.github.io/zurihac-workshop`]
+
+Write the `Monad Action` instance
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return  = _
+  x >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  -- a -> Action a
+  return  = _
+  x >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+    -- a ↰   ↱ Action a
+  return x = _
+  x >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+    -- a ↰   ↱ Action a
+  return x = Return
+  x >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  -- Action a -> (a -> Action b) -> Action b
+  x >>= f = _
+```
+
+--
+
+Pattern matching on `Action` keeps us going
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  --   a ↰     ↱ (a -> Action b)
+  Return x >>= f = _    -- Action b
+  FlipCoin next >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  --   a ↰     ↱ (a -> Action b)
+  Return x >>= f = f x  -- Action b
+  FlipCoin next >>= f = _
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  Return x >>= f = f x  -- Action b
+  -- FlipCoin -> Action a
+  --         ↑      ↱ (a -> Action b)
+  FlipCoin next >>= f = _
+```
+
+--
+
+We are mixing two blocks of actions
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  Return x >>= f = f x  -- Action b
+  -- FlipCoin -> Action a
+  --         ↑      ↱ (a -> Action b)
+  FlipCoin next >>= f = FlipCoin _ 
+        -- FlipCoin -> Action b  ↵
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  Return x >>= f = f x  -- Action b
+  -- FlipCoin -> Action a
+  --         ↑      ↱ (a -> Action b)
+  FlipCoin next >>= f =
+    FlipCoin (\oc -> _ :: Action b)
+```
+
+---
+
+# 🧙 Monads!
+
+```haskell
+data Action a
+  = FlipCoin (FlipOutcome -> Action)
+  | Return a  -- "ends" the computation
+
+instance Monad Action where
+  return x = Return
+  Return x >>= f = f x  -- Action b
+  -- FlipCoin -> Action a
+  --         ↑      ↱ (a -> Action b)
+  FlipCoin next >>= f =
+    FlipCoin (\oc -> next oc >>= f)
+```
+
+---
+
+# 😮‍💨 What have we gained?
+
+Being a `Monad` gives you `do` notation
+
+```haskell
+flipCoin :: Action FlipOutcome
+flipCoin = FlipCoin Return
+
+flipTwo = do
+  x <- flipCoin
+  y <- flipCoin
+  if (x == Heads && y == Heads)
+  then return 50 else return 0
+```
+
+---
+
+# 😮‍💨 What have we gained?
+
+Being a `Monad` gives you `do` notation
+
+```haskell
+flipTwo = 
+  FlipCoin $ \oc1 ->
+  FlipCoin $ \oc2 ->
+  if (oc1 == Heads && oc2 == Heads)
+  then Return 50 else Return 0
+```
+
+No need to handle constructors manually!
+
+---
+
+# 😮‍💨 What have we gained?
+
+Being a `Monad` gives you access to many others
+
+- Everything in `Control.Monad`
+- `Control.Monad.Extra` in `extra`
+- `monad-loops`
+
+--
+
+```haskell
+ironTailAction = do
+  heads <- while (/= Tails) flipCoin
+  return (30 * length heads)
+```
 
 ---
 
